@@ -1,0 +1,92 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+
+public class BankAccountManagement extends JFrame {
+    private double balance = 0;
+    private JLabel balanceLabel;
+    private JTextField amountField;
+    private JButton depositBtn, withdrawBtn;
+    private JTable transactionTable;
+    private DefaultTableModel tableModel;
+
+    public BankAccountManagement() {
+        setTitle("Bank Account Management");
+        setSize(500, 400);
+        setLocationRelativeTo(null);
+        setLayout(new BorderLayout(10, 10));
+
+        // Balance display
+        balanceLabel = new JLabel("Current Balance: ₹0.00", SwingConstants.CENTER);
+        balanceLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        add(balanceLabel, BorderLayout.NORTH);
+
+        // Transaction panel
+        JPanel transactionPanel = new JPanel();
+        transactionPanel.add(new JLabel("Amount (₹):"));
+        amountField = new JTextField(10);
+        transactionPanel.add(amountField);
+
+        depositBtn = new JButton("Deposit");
+        depositBtn.setBackground(new Color(60, 179, 113));
+        depositBtn.setForeground(Color.WHITE);
+
+        withdrawBtn = new JButton("Withdraw");
+        withdrawBtn.setBackground(new Color(220, 20, 60));
+        withdrawBtn.setForeground(Color.WHITE);
+
+        transactionPanel.add(depositBtn);
+        transactionPanel.add(withdrawBtn);
+        add(transactionPanel, BorderLayout.CENTER);
+
+        // Transaction history table
+        tableModel = new DefaultTableModel(new String[]{"Type", "Amount (₹)", "Balance After (₹)"}, 0);
+        transactionTable = new JTable(tableModel);
+        add(new JScrollPane(transactionTable), BorderLayout.SOUTH);
+
+        // Button actions
+        depositBtn.addActionListener(e -> deposit());
+        withdrawBtn.addActionListener(e -> withdraw());
+
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setVisible(true);
+    }
+
+    private void deposit() {
+        try {
+            double amt = Double.parseDouble(amountField.getText());
+            if (amt <= 0) throw new NumberFormatException();
+            balance += amt;
+            updateBalance();
+            tableModel.addRow(new Object[]{"Deposit", String.format("₹%.2f", amt), String.format("₹%.2f", balance)});
+            amountField.setText("");
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Enter a valid positive amount!", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void withdraw() {
+        try {
+            double amt = Double.parseDouble(amountField.getText());
+            if (amt <= 0) throw new NumberFormatException();
+            if (amt > balance) {
+                JOptionPane.showMessageDialog(this, "Insufficient Balance!", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            balance -= amt;
+            updateBalance();
+            tableModel.addRow(new Object[]{"Withdraw", String.format("₹%.2f", amt), String.format("₹%.2f", balance)});
+            amountField.setText("");
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Enter a valid positive amount!", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void updateBalance() {
+        balanceLabel.setText(String.format("Current Balance: ₹%.2f", balance));
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(BankAccountManagement::new);
+    }
+}
