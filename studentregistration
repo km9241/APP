@@ -1,0 +1,133 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+
+/**
+ * Java Swing application for student registration.
+ * Allows input of Name and Roll No, validates entries,
+ * stores them in a MySQL database, and displays all records.
+ */
+public class StudentRegistration extends JFrame {
+
+    private JTextField nameField, rollField;
+    private JButton submitButton, clearButton;
+    private JTable studentTable;
+    private DefaultTableModel tableModel;
+
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/schooldb";
+    private static final String DB_USER = "root";
+    private static final String DB_PASS = "D$ai1919";
+
+    public StudentRegistration() {
+        // Frame setup
+        setTitle("Student Registration Form");
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setSize(600, 400);
+        setLocationRelativeTo(null);
+        setLayout(new BorderLayout(10, 10));
+
+        // Title label
+        JLabel titleLabel = new JLabel("Student Registration", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        titleLabel.setForeground(new Color(30, 144, 255));
+        add(titleLabel, BorderLayout.NORTH);
+
+        // Form panel
+        JPanel formPanel = new JPanel(new GridLayout(2, 2, 10, 10));
+        formPanel.setBorder(BorderFactory.createEmptyBorder(10, 30, 10, 30));
+
+        formPanel.add(new JLabel("Student Name:"));
+        nameField = new JTextField();
+        formPanel.add(nameField);
+
+        formPanel.add(new JLabel("Roll Number:"));
+        rollField = new JTextField();
+        formPanel.add(rollField);
+
+        add(formPanel, BorderLayout.WEST);
+
+        // Button panel
+        JPanel buttonPanel = new JPanel();
+        submitButton = new JButton("Register");
+        clearButton = new JButton("Clear");
+
+        submitButton.setBackground(new Color(60, 179, 113));
+        submitButton.setForeground(Color.WHITE);
+        clearButton.setBackground(new Color(220, 20, 60));
+        clearButton.setForeground(Color.WHITE);
+
+        buttonPanel.add(submitButton);
+        buttonPanel.add(clearButton);
+        add(buttonPanel, BorderLayout.SOUTH);
+
+        // Table setup
+        tableModel = new DefaultTableModel(new String[]{"Name", "Roll Number"}, 0);
+        studentTable = new JTable(tableModel);
+        JScrollPane scrollPane = new JScrollPane(studentTable);
+        scrollPane.setPreferredSize(new Dimension(350, 300));
+        add(scrollPane, BorderLayout.CENTER);
+
+        // Button actions
+        submitButton.addActionListener(e -> registerStudent());
+        clearButton.addActionListener(e -> clearFields());
+
+        // Load existing students
+        loadStudents();
+
+        setVisible(true);
+    }
+
+    /** Registers a student into the database after validation. */
+    private void registerStudent() {
+        String name = nameField.getText().trim();
+        String roll = rollField.getText().trim();
+
+        if (name.isEmpty() || roll.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please fill in all fields!", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS)) {
+            PreparedStatement ps = conn.prepareStatement("INSERT INTO students (name, roll) VALUES (?, ?)");
+            ps.setString(1, name);
+            ps.setString(2, roll);
+            ps.executeUpdate();
+
+            JOptionPane.showMessageDialog(this, "Student Registered Successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+            clearFields();
+            loadStudents(); // Refresh table
+
+        } catch (SQLIntegrityConstraintViolationException e) {
+            JOptionPane.showMessageDialog(this, "Duplicate Roll Number!", "Database Error", JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Database Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /** Loads all students from the database into the JTable. */
+    private void loadStudents() {
+        tableModel.setRowCount(0); // Clear existing data
+        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS)) {
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT name, roll FROM students ORDER BY roll");
+            while (rs.next()) {
+                tableModel.addRow(new Object[]{rs.getString("name"), rs.getString("roll")});
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error loading students: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /** Clears all input fields. */
+    private void clearFields() {
+        nameField.setText("");
+        rollField.setText("");
+    }
+
+    /** Main method to start the application. */
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(StudentRegistration::new);
+    }
+}
