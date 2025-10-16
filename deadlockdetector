@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'><path d='M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM15.1 8H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z'/></svg>">
+    <title>Advanced Deadlock Detection & Prevention Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0c0c2e, #1a1a4a, #2d2d6e);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+            position: relative;
+        }
+        
+        h1 {
+            font-size: 3.2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #ff6b6b, #ffa726, #4ecdc4, #45b7d1, #96ceb4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 15px rgba(0, 0, 0, 0.3);
+            animation: titleGlow 3s ease-in-out infinite alternate;
+        }
+        
+        @keyframes titleGlow {
+            0% { filter: drop-shadow(0 0 5px rgba(255, 107, 107, 0.5)); }
+            100% { filter: drop-shadow(0 0 15px rgba(78, 205, 196, 0.5)); }
+        }
+        
+        .subtitle {
+            font-size: 1.4rem;
+            color: #b0b0ff;
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+        
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 30px;
+            margin-bottom: 30px;
+            align-items: start;
+        }
+        
+        @media (max-width: 1100px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .control-panel, .visualization {
+            background: rgba(30, 30, 60, 0.7);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+            height: fit-content;
+        }
+        
+        h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #4fc3f7;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        h2:before {
+            content: "▶";
+            font-size: 0.8em;
+            color: #ff9800;
+        }
+        
+        .scenario-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .scenario-btn {
+            padding: 16px;
+            background: linear-gradient(135deg, #2196f3, #1976d2);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3);
+        }
+        
+        .scenario-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 20px rgba(33, 150, 243, 0.5);
+        }
+        
+        .scenario-btn.deadlock {
+            background: linear-gradient(135deg, #ff5252, #d32f2f);
+            box-shadow: 0 4px 10px rgba(255, 82, 82, 0.3);
+        }
+        
+        .scenario-btn.safe {
+            background: linear-gradient(135deg, #4caf50, #388e3c);
+            box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
+        }
+        
+        .scenario-btn.complex {
+            background: linear-gradient(135deg, #9c27b0, #7b1fa2);
+            box-shadow: 0 4px 10px rgba(156, 39, 176, 0.3);
+        }
+        
+        .resource-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .control-group {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .control-group h3 {
+            color: #81d4fa;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .control-group h3:before {
+            content: "●";
+            font-size: 0.7em;
+            color: #ff9800;
+        }
+        
+        .process-controls, .resource-controls-inner {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        input, select, button {
+            padding: 14px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        input {
+            background: rgba(255, 255, 255, 0.12);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #4fc3f7;
+            box-shadow: 0 0 0 2px rgba(79, 195, 247, 0.3);
+        }
+        
+        input::placeholder {
+            color: #aaa;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 10px rgba(255, 152, 0, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(255, 152, 0, 0.5);
+        }
+        
+        .relationship-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        .relationship-controls select, .relationship-controls button {
+            width: 100%;
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .detect-btn {
+            background: linear-gradient(135deg, #9c27b0, #7b1fa2);
+            box-shadow: 0 4px 10px rgba(156, 39, 176, 0.3);
+        }
+        
+        .resolve-btn {
+            background: linear-gradient(135deg, #e91e63, #c2185b);
+            box-shadow: 0 4px 10px rgba(233, 30, 99, 0.3);
+        }
+        
+        .graph-container {
+            position: relative;
+            height: 500px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        .process-node {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+            transition: all 0.5s;
+            z-index: 10;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+        }
+        
+        .process-node:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+        }
+        
+        .resource-node {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+            transition: all 0.5s;
+            z-index: 10;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+        }
+        
+        .resource-node:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+        }
+        
+        .edge {
+            position: absolute;
+            height: 4px;
+            background: #4fc3f7;
+            transform-origin: 0 0;
+            z-index: 5;
+            transition: all 0.5s;
+        }
+        
+        .edge.request {
+            background: #ff9800;
+            box-shadow: 0 0 8px rgba(255, 152, 0, 0.5);
+        }
+        
+        .edge.allocation {
+            background: #4caf50;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+        }
+        
+        .deadlock-detected {
+            animation: pulse 1.5s infinite, glow 2s infinite alternate;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes glow {
+            0% { box-shadow: 0 0 10px rgba(255, 0, 0, 0.7); }
+            100% { box-shadow: 0 0 30px rgba(255, 0, 0, 0.9); }
+        }
+        
+        .status-panel {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .status-message {
+            font-size: 1.3rem;
+            text-align: center;
+            padding: 18px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.5s;
+        }
+        
+        .status-safe {
+            background: rgba(76, 175, 80, 0.2);
+            border: 2px solid #4caf50;
+            color: #a5d6a7;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        .status-deadlock {
+            background: rgba(244, 67, 54, 0.2);
+            border: 2px solid #f44336;
+            color: #ffab91;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 20px rgba(244, 67, 54, 0.4);
+        }
+        
+        .algorithm-steps {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .step {
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid #4fc3f7;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 0 8px 8px 0;
+            transition: all 0.3s;
+        }
+        
+        .step:hover {
+            background: rgba(0, 0, 0, 0.4);
+            transform: translateX(5px);
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 20px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        
+        .process-legend {
+            background: #2196f3;
+        }
+        
+        .resource-legend {
+            background: #ff9800;
+        }
+        
+        .request-legend {
+            background: #ff9800;
+            height: 4px;
+        }
+        
+        .allocation-legend {
+            background: #4caf50;
+            height: 4px;
+        }
+        
+        .instructions {
+            margin-top: 30px;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            line-height: 1.6;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .instructions h3 {
+            color: #4fc3f7;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .instructions h3:before {
+            content: "📘";
+        }
+        
+        .instructions ol {
+            padding-left: 25px;
+        }
+        
+        .instructions li {
+            margin-bottom: 12px;
+            padding-left: 10px;
+        }
+        
+        .concepts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .concept-card {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+        
+        .concept-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .concept-card h4 {
+            color: #81d4fa;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .concept-card h4:before {
+            content: "★";
+            color: #ff9800;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+        
+        /* Responsive improvements */
+        @media (max-width: 768px) {
+            .resource-controls, .relationship-controls, .scenario-buttons, .action-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .concepts {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(79, 195, 247, 0.5);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(79, 195, 247, 0.7);
+        }
+        
+        .resolution-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .resolution-btn {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        
+        .resolution-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Advanced Deadlock Detection Simulator</h1>
+            <p class="subtitle">Visualize, Detect, and Resolve Deadlocks in Operating Systems</p>
+        </header>
+        
+        <div class="content">
+            <div class="control-panel">
+                <h2>Control Panel</h2>
+                
+                <div class="scenario-buttons">
+                    <button class="scenario-btn deadlock" onclick="loadDeadlockScenario()">
+                        <span>🔴</span> Deadlock Scenario
+                    </button>
+                    <button class="scenario-btn safe" onclick="loadSafeScenario()">
+                        <span>🟢</span> Safe Scenario
+                    </button>
+                    <button class="scenario-btn complex" onclick="loadComplexScenario()">
+                        <span>🟣</span> Complex Scenario
+                    </button>
+                    <button class="scenario-btn" onclick="resetScenario()">
+                        <span>🔄</span> Reset Scenario
+                    </button>
+                </div>
+                
+                <div class="resource-controls">
+                    <div class="control-group">
+                        <h3>Process Controls</h3>
+                        <div class="process-controls">
+                            <input type="text" id="process-id" placeholder="Process ID (P1, P2, ...)">
+                            <button onclick="addProcess()">
+                                <span>➕</span> Add Process
+                            </button>
+                            <button onclick="removeProcess()">
+                                <span>➖</span> Remove Process
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h3>Resource Controls</h3>
+                        <div class="resource-controls-inner">
+                            <input type="text" id="resource-id" placeholder="Resource ID (R1, R2, ...)">
+                            <button onclick="addResource()">
+                                <span>➕</span> Add Resource
+                            </button>
+                            <button onclick="removeResource()">
+                                <span>➖</span> Remove Resource
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>Create Relationships</h3>
+                    <div class="relationship-controls">
+                        <select id="from-node">
+                            <option value="">Select Process</option>
+                        </select>
+                        <select id="edge-type">
+                            <option value="request">Request Edge</option>
+                            <option value="allocation">Allocation Edge</option>
+                        </select>
+                        <select id="to-node">
+                            <option value="">Select Resource</option>
+                        </select>
+                        <button onclick="addEdge()">
+                            <span>🔗</span> Create Relationship
+                        </button>
+                        <button onclick="removeEdge()">
+                            <span>🔓</span> Remove Relationship
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="detect-btn" onclick="detectDeadlock()">
+                        <span>🔍</span> Detect Deadlock
+                    </button>
+                    <button class="resolve-btn" onclick="showResolutionOptions()">
+                        <span>⚡</span> Resolve Deadlock
+                    </button>
+                </div>
+                
+                <div id="resolution-options" class="resolution-options" style="display: none;">
+                    <button class="resolution-btn" onclick="resolveDeadlock('terminate')">Terminate Process</button>
+                    <button class="resolution-btn" onclick="resolveDeadlock('preempt')">Preempt Resource</button>
+                    <button class="resolution-btn" onclick="resolveDeadlock('rollback')">Rollback Process</button>
+                </div>
+            </div>
+            
+            <div class="visualization">
+                <h2>Resource Allocation Graph</h2>
+                <div class="graph-container" id="graph-container">
+                    <!-- Graph will be drawn here using JavaScript -->
+                </div>
+                
+                <div class="status-panel">
+                    <div class="status-message status-safe" id="status-message">
+                        <span>✅</span> System Status: Safe
+                    </div>
+                    <div class="algorithm-steps" id="algorithm-steps">
+                        <div class="step">Welcome to Advanced Deadlock Detection Simulator. Load a scenario or create your own graph to begin.</div>
+                    </div>
+                </div>
+                
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color process-legend"></div>
+                        <span>Process</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color resource-legend"></div>
+                        <span>Resource</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color request-legend"></div>
+                        <span>Request Edge</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color allocation-legend"></div>
+                        <span>Allocation Edge</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="concepts">
+            <div class="concept-card">
+                <h4>What is Deadlock?</h4>
+                <p>A deadlock occurs when two or more processes are unable to proceed because each is waiting for the other to release a resource, creating a circular dependency.</p>
+            </div>
+            <div class="concept-card">
+                <h4>Necessary Conditions</h4>
+                <p>Deadlocks require four conditions: Mutual Exclusion, Hold and Wait, No Preemption, and Circular Wait. All four must be present for a deadlock to occur.</p>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h3>How to Use This Simulator</h3>
+            <ol>
+                <li>Use the scenario buttons to load pre-configured examples (Deadlock, Safe, Complex)</li>
+                <li>Add processes and resources using the control panels with unique IDs</li>
+                <li>Create request (process → resource) and allocation (resource → process) edges</li>
+                <li>Click "Detect Deadlock" to check for deadlocks in the current graph</li>
+                <li>Use "Resolve Deadlock" to see how deadlocks can be resolved automatically</li>
+                <li>Create your own scenarios to test different configurations and understand deadlock dynamics</li>
+            </ol>
+        </div>
+        
+        <div class="footer">
+            <p>Made By-Tushar | Operating Systems Project | Interactive Learning Showcase</p>
+        </div>
+    </div>
+
+    <script>
+        // Graph data structure
+        let graph = {
+            nodes: [],
+            edges: []
+        };
+
+        // Color palettes
+        const processColors = ['#2196F3', '#03A9F4', '#00BCD4', '#009688', '#4CAF50'];
+        const resourceColors = ['#FF9800', '#FF5722', '#E91E63', '#9C27B0', '#673AB7'];
+
+        // Initialize the graph with a simple example
+        function initializeGraph() {
+            // Add some default processes and resources
+            addNode('P1', 'process');
+            addNode('P2', 'process');
+            addNode('R1', 'resource');
+            addNode('R2', 'resource');
+            
+            // Position nodes
+            positionNodes();
+            
+            // Update dropdowns
+            updateDropdowns();
+            
+            // Draw the graph
+            drawGraph();
+        }
+
+        // Add a node to the graph
+        function addNode(id, type) {
+            // Check if node already exists
+            if (graph.nodes.find(node => node.id === id)) {
+                alert(`Node ${id} already exists!`);
+                return;
+            }
+            
+            graph.nodes.push({
+                id: id,
+                type: type
+            });
+            
+            positionNodes();
+            updateDropdowns();
+            drawGraph();
+            addStep(`Added ${type}: ${id}`);
+        }
+
+        // Remove a node from the graph
+        function removeNode(id) {
+            graph.nodes = graph.nodes.filter(node => node.id !== id);
+            graph.edges = graph.edges.filter(edge => edge.from !== id && edge.to !== id);
+            
+            positionNodes();
+            updateDropdowns();
+            drawGraph();
+            addStep(`Removed node: ${id}`);
+        }
+
+        // Add an edge to the graph
+        function addEdge() {
+            const from = document.getElementById('from-node').value;
+            const to = document.getElementById('to-node').value;
+            const type = document.getElementById('edge-type').value;
+            
+            if (!from || !to) {
+                alert('Please select both from and to nodes!');
+                return;
+            }
+            
+            // Check if edge already exists
+            if (graph.edges.find(edge => edge.from === from && edge.to === to)) {
+                alert('Edge already exists!');
+                return;
+            }
+            
+            graph.edges.push({
+                from: from,
+                to: to,
+                type: type
+            });
+            
+            drawGraph();
+            addStep(`Added ${type} edge: ${from} → ${to}`);
+        }
+
+        // Remove an edge from the graph
+        function removeEdge() {
+            const from = document.getElementById('from-node').value;
+            const to = document.getElementById('to-node').value;
+            
+            if (!from || !to) {
+                alert('Please select both from and to nodes!');
+                return;
+            }
+            
+            graph.edges = graph.edges.filter(edge => !(edge.from === from && edge.to === to));
+            
+            drawGraph();
+            addStep(`Removed edge: ${from} → ${to}`);
+        }
+
+        // Position nodes in the graph
+        function positionNodes() {
+            const processes = graph.nodes.filter(node => node.type === 'process');
+            const resources = graph.nodes.filter(node => node.type === 'resource');
+            
+            // Position processes on the left
+            processes.forEach((process, index) => {
+                const total = processes.length;
+                const y = (index + 1) * (500 / (total + 1));
+                process.x = 150;
+                process.y = y;
+            });
+            
+            // Position resources on the right
+            resources.forEach((resource, index) => {
+                const total = resources.length;
+                const y = (index + 1) * (500 / (total + 1));
+                resource.x = 650;
+                resource.y = y;
+            });
+        }
+
+        // Draw the graph
+        function drawGraph() {
+            const container = document.getElementById('graph-container');
+            container.innerHTML = '';
+            
+            // Draw edges first (so they appear behind nodes)
+            graph.edges.forEach(edge => {
+                const fromNode = graph.nodes.find(node => node.id === edge.from);
+                const toNode = graph.nodes.find(node => node.id === edge.to);
+                
+                if (fromNode && toNode) {
+                    const edgeElement = document.createElement('div');
+                    edgeElement.className = `edge ${edge.type}`;
+                    
+                    // Calculate edge position and rotation
+                    const dx = toNode.x - fromNode.x;
+                    const dy = toNode.y - fromNode.y;
+                    const length = Math.sqrt(dx * dx + dy * dy);
+                    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                    
+                    edgeElement.style.width = `${length}px`;
+                    edgeElement.style.left = `${fromNode.x}px`;
+                    edgeElement.style.top = `${fromNode.y}px`;
+                    edgeElement.style.transform = `rotate(${angle}deg)`;
+                    
+                    container.appendChild(edgeElement);
+                }
+            });
+            
+            // Draw nodes
+            graph.nodes.forEach(node => {
+                const nodeElement = document.createElement('div');
+                nodeElement.className = `${node.type}-node`;
+                nodeElement.id = `node-${node.id}`;
+                nodeElement.textContent = node.id;
+                nodeElement.style.left = `${node.x - 40}px`;
+                nodeElement.style.top = `${node.y - 40}px`;
+                
+                // Set color based on type and ID
+                if (node.type === 'process') {
+                    const index = parseInt(node.id.substring(1)) - 1;
+                    nodeElement.style.background = processColors[index % processColors.length];
+                } else {
+                    const index = parseInt(node.id.substring(1)) - 1;
+                    nodeElement.style.background = resourceColors[index % resourceColors.length];
+                }
+                
+                container.appendChild(nodeElement);
+            });
+        }
+
+        // Update dropdown menus
+        function updateDropdowns() {
+            const fromSelect = document.getElementById('from-node');
+            const toSelect = document.getElementById('to-node');
+            
+            // Clear existing options
+            fromSelect.innerHTML = '<option value="">Select Process</option>';
+            toSelect.innerHTML = '<option value="">Select Resource</option>';
+            
+            // Add processes to from dropdown
+            graph.nodes
+                .filter(node => node.type === 'process')
+                .forEach(node => {
+                    const option = document.createElement('option');
+                    option.value = node.id;
+                    option.textContent = node.id;
+                    fromSelect.appendChild(option);
+                });
+            
+            // Add resources to to dropdown
+            graph.nodes
+                .filter(node => node.type === 'resource')
+                .forEach(node => {
+                    const option = document.createElement('option');
+                    option.value = node.id;
+                    option.textContent = node.id;
+                    toSelect.appendChild(option);
+                });
+        }
+
+        // Add a process
+        function addProcess() {
+            const id = document.getElementById('process-id').value.trim();
+            if (!id) {
+                alert('Please enter a process ID!');
+                return;
+            }
+            addNode(id, 'process');
+            document.getElementById('process-id').value = '';
+        }
+
+        // Remove a process
+        function removeProcess() {
+            const id = document.getElementById('process-id').value.trim();
+            if (!id) {
+                alert('Please enter a process ID!');
+                return;
+            }
+            removeNode(id);
+            document.getElementById('process-id').value = '';
+        }
+
+        // Add a resource
+        function addResource() {
+            const id = document.getElementById('resource-id').value.trim();
+            if (!id) {
+                alert('Please enter a resource ID!');
+                return;
+            }
+            addNode(id, 'resource');
+            document.getElementById('resource-id').value = '';
+        }
+
+        // Remove a resource
+        function removeResource() {
+            const id = document.getElementById('resource-id').value.trim();
+            if (!id) {
+                alert('Please enter a resource ID!');
+                return;
+            }
+            removeNode(id);
+            document.getElementById('resource-id').value = '';
+        }
+
+        // Add a step to the algorithm steps panel
+        function addStep(message) {
+            const stepsContainer = document.getElementById('algorithm-steps');
+            const stepElement = document.createElement('div');
+            stepElement.className = 'step';
+            stepElement.textContent = message;
+            stepsContainer.appendChild(stepElement);
+            stepsContainer.scrollTop = stepsContainer.scrollHeight;
+        }
+
+        // Load a deadlock scenario
+        function loadDeadlockScenario() {
+            resetScenario();
+            
+            // Add processes and resources
+            addNode('P1', 'process');
+            addNode('P2', 'process');
+            addNode('R1', 'resource');
+            addNode('R2', 'resource');
+            
+            // Create a circular wait (deadlock)
+            graph.edges.push({ from: 'P1', to: 'R1', type: 'allocation' });
+            graph.edges.push({ from: 'R1', to: 'P2', type: 'request' });
+            graph.edges.push({ from: 'P2', to: 'R2', type: 'allocation' });
+            graph.edges.push({ from: 'R2', to: 'P1', type: 'request' });
+            
+            positionNodes();
+            updateDropdowns();
+            drawGraph();
+            
+            addStep('Loaded deadlock scenario: Circular wait between P1→R1→P2→R2→P1');
+            addStep('This represents a classic deadlock where P1 holds R1 and needs R2, while P2 holds R2 and needs R1');
+        }
+
+        // Load a safe scenario
+        function loadSafeScenario() {
+            resetScenario();
+            
+            // Add processes and resources
+            addNode('P1', 'process');
+            addNode('P2', 'process');
+            addNode('R1', 'resource');
+            addNode('R2', 'resource');
+            
+            // Create a safe allocation
+            graph.edges.push({ from: 'P1', to: 'R1', type: 'allocation' });
+            graph.edges.push({ from: 'P2', to: 'R2', type: 'allocation' });
+            graph.edges.push({ from: 'R1', to: 'P2', type: 'request' });
+            
+            positionNodes();
+            updateDropdowns();
+            drawGraph();
+            
+            addStep('Loaded safe scenario: No circular wait detected');
+            addStep('P2 is requesting R1, but there is no circular dependency that would cause a deadlock');
+        }
+
+        // Load a complex scenario
+        function loadComplexScenario() {
+            resetScenario();
+            
+            // Add processes and resources
+            addNode('P1', 'process');
+            addNode('P2', 'process');
+            addNode('P3', 'process');
+            addNode('R1', 'resource');
+            addNode('R2', 'resource');
+            addNode('R3', 'resource');
+            
+            // Create a complex graph
+            graph.edges.push({ from: 'P1', to: 'R1', type: 'allocation' });
+            graph.edges.push({ from: 'P2', to: 'R2', type: 'allocation' });
+            graph.edges.push({ from: 'P3', to: 'R3', type: 'allocation' });
+            graph.edges.push({ from: 'R1', to: 'P2', type: 'request' });
+            graph.edges.push({ from: 'R2', to: 'P3', type: 'request' });
+            graph.edges.push({ from: 'R3', to: 'P1', type: 'request' });
+            
+            positionNodes();
+            updateDropdowns();
+            drawGraph();
+            
+            addStep('Loaded complex scenario: Multiple processes and resources');
+            addStep('This scenario demonstrates a more complex resource allocation graph with three processes and three resources');
+        }
+
+        // Reset the scenario
+        function resetScenario() {
+            graph = { nodes: [], edges: [] };
+            document.getElementById('algorithm-steps').innerHTML = '';
+            document.getElementById('status-message').className = 'status-message status-safe';
+            document.getElementById('status-message').innerHTML = '<span>✅</span> System Status: Safe';
+            document.getElementById('resolution-options').style.display = 'none';
+            drawGraph();
+            addStep('Scenario reset. Graph is empty.');
+        }
+
+        // Detect deadlock using graph reduction algorithm
+        function detectDeadlock() {
+            addStep('Starting deadlock detection...');
+            
+            // Create a copy of the graph for reduction
+            const workGraph = JSON.parse(JSON.stringify(graph));
+            let changed = true;
+            let safe = true;
+            
+            // Remove any existing deadlock highlighting
+            document.querySelectorAll('.deadlock-detected').forEach(node => {
+                node.classList.remove('deadlock-detected');
+            });
+            
+            while (changed) {
+                changed = false;
+                
+                // Find processes that are not blocked (no outgoing request edges)
+                for (let i = 0; i < workGraph.nodes.length; i++) {
+                    const node = workGraph.nodes[i];
+                    
+                    if (node.type === 'process') {
+                        // Check if this process has any request edges
+                        const hasRequests = workGraph.edges.some(edge => 
+                            edge.from === node.id && edge.type === 'request');
+                        
+                        if (!hasRequests) {
+                            // This process is not blocked, remove it and its allocation edges
+                            addStep(`Process ${node.id} is not blocked, removing from graph...`);
+                            
+                            // Remove allocation edges from this process
+                            workGraph.edges = workGraph.edges.filter(edge => 
+                                !(edge.from === node.id && edge.type === 'allocation'));
+                            
+                            // Remove the process node
+                            workGraph.nodes.splice(i, 1);
+                            i--; // Adjust index after removal
+                            changed = true;
+                        }
+                    }
+                }
+            }
+            
+            // If there are any processes left, we have a deadlock
+            const remainingProcesses = workGraph.nodes.filter(node => node.type === 'process');
+            if (remainingProcesses.length > 0) {
+                safe = false;
+                addStep(`DEADLOCK DETECTED! Processes involved: ${remainingProcesses.map(p => p.id).join(', ')}`);
+                addStep('The system is in an unsafe state. Processes cannot proceed due to circular waiting.');
+                
+                // Highlight deadlocked processes in the graph
+                remainingProcesses.forEach(process => {
+                    const nodeElement = document.getElementById(`node-${process.id}`);
+                    if (nodeElement) {
+                        nodeElement.classList.add('deadlock-detected');
+                    }
+                });
+                
+                document.getElementById('status-message').className = 'status-message status-deadlock';
+                document.getElementById('status-message').innerHTML = '<span>🚨</span> System Status: DEADLOCK DETECTED!';
+            } else {
+                addStep('No deadlock detected. System is in a safe state.');
+                addStep('All processes can eventually obtain the resources they need.');
+                document.getElementById('status-message').className = 'status-message status-safe';
+                document.getElementById('status-message').innerHTML = '<span>✅</span> System Status: Safe';
+            }
+            
+            return !safe;
+        }
+
+        // Show resolution options
+        function showResolutionOptions() {
+            // First detect if there's actually a deadlock
+            const hasDeadlock = detectDeadlock();
+            
+            if (!hasDeadlock) {
+                addStep('No deadlock to resolve. System is already in a safe state.');
+                document.getElementById('resolution-options').style.display = 'none';
+                return;
+            }
+            
+            // Show resolution options
+            document.getElementById('resolution-options').style.display = 'grid';
+            addStep('Select a resolution method to break the deadlock:');
+        }
+
+        // Resolve deadlock with different strategies
+        function resolveDeadlock(strategy) {
+            addStep(`Applying ${strategy} resolution strategy...`);
+            
+            // Hide resolution options
+            document.getElementById('resolution-options').style.display = 'none';
+            
+            // Get deadlocked processes
+            const deadlockedProcesses = graph.nodes.filter(node => 
+                node.type === 'process' && 
+                document.getElementById(`node-${node.id}`).classList.contains('deadlock-detected')
+            );
+            
+            if (deadlockedProcesses.length === 0) {
+                addStep('No deadlocked processes found. System may already be safe.');
+                return;
+            }
+            
+            // Apply selected resolution strategy
+            switch(strategy) {
+                case 'terminate':
+                    // Terminate the first deadlocked process
+                    const processToTerminate = deadlockedProcesses[0];
+                    addStep(`Terminating process ${processToTerminate.id} to break the deadlock...`);
+                    removeNode(processToTerminate.id);
+                    addStep(`Process ${processToTerminate.id} terminated. Deadlock resolved.`);
+                    break;
+                    
+                case 'preempt':
+                    // Preempt a resource from the first deadlocked process
+                    const processToPreempt = deadlockedProcesses[0];
+                    // Find an allocation edge from this process
+                    const allocationEdge = graph.edges.find(edge => 
+                        edge.from === processToPreempt.id && edge.type === 'allocation'
+                    );
+                    
+                    if (allocationEdge) {
+                        addStep(`Preempting resource ${allocationEdge.to} from process ${processToPreempt.id}...`);
+                        // Remove the allocation edge
+                        graph.edges = graph.edges.filter(edge => 
+                            !(edge.from === processToPreempt.id && edge.to === allocationEdge.to && edge.type === 'allocation')
+                        );
+                        drawGraph();
+                        addStep(`Resource ${allocationEdge.to} preempted from process ${processToPreempt.id}. Deadlock resolved.`);
+                    } else {
+                        addStep(`No resources allocated to process ${processToPreempt.id}. Trying alternative resolution.`);
+                        // Fall back to termination
+                        removeNode(processToPreempt.id);
+                        addStep(`Process ${processToPreempt.id} terminated. Deadlock resolved.`);
+                    }
+                    break;
+                    
+                case 'rollback':
+                    // Rollback the first deadlocked process (simulate)
+                    const processToRollback = deadlockedProcesses[0];
+                    addStep(`Rolling back process ${processToRollback.id} to a previous safe state...`);
+                    // Remove all edges associated with this process
+                    graph.edges = graph.edges.filter(edge => 
+                        edge.from !== processToRollback.id && edge.to !== processToRollback.id
+                    );
+                    drawGraph();
+                    addStep(`Process ${processToRollback.id} rolled back. Deadlock resolved.`);
+                    break;
+            }
+            
+            addStep('Verifying system state after resolution...');
+            // Check if system is now safe
+            detectDeadlock();
+        }
+
+        // Initialize the application
+        window.onload = function() {
+            initializeGraph();
+            addStep('Advanced Deadlock Detection Simulator initialized. Load a scenario to begin!');
+            addStep('This simulator demonstrates deadlock detection using the resource allocation graph method.');
+        };
+    </script>
+</body>
+</html>
+
